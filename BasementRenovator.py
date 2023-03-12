@@ -428,7 +428,6 @@ class RoomScene(QGraphicsScene):
         self.addItem(self.roomDoorRoot)
 
     def drawForeground(self, painter, rect):
-
         # Bitfont drawing: moved to the RoomEditorWidget.drawForeground for easier anti-aliasing
 
         # Grey out the screen to show it's inactive if there are no rooms selected
@@ -533,7 +532,6 @@ class RoomScene(QGraphicsScene):
         return self.bgState[2] if self.bgState else None
 
     def drawBackground(self, painter, rect):
-
         self.loadBackground()
 
         xOff, yOff = 0, 0
@@ -939,7 +937,6 @@ class Entity(QGraphicsItem):
             self.getEntityInfo(t, v, s)
 
         def getEntityInfo(self, entitytype, variant, subtype):
-
             self.config = xmlLookups.entities.lookupOne(entitytype, variant, subtype)
             if self.config is None:
                 printf(
@@ -1150,7 +1147,6 @@ class Entity(QGraphicsItem):
     def getPitFrame(self, pitImg, rendered):
         def matchInStack(stack):
             for ent in stack:
-
                 img = ent.getCurrentImg()
 
                 if img == pitImg:
@@ -1323,9 +1319,7 @@ class Entity(QGraphicsItem):
             DR.entity.placeVisual = (h, g)
 
     def itemChange(self, change, value):
-
         if change == self.ItemPositionChange:
-
             currentX, currentY = self.entity.x, self.entity.y
 
             xc, yc = value.x(), value.y()
@@ -1392,7 +1386,6 @@ class Entity(QGraphicsItem):
         return self.entity.imgPath if override is None else override.get("Image")
 
     def paint(self, painter, option, widget):
-
         painter.setRenderHint(QPainter.Antialiasing, True)
 
         painter.setBrush(Qt.Dense5Pattern)
@@ -1953,7 +1946,6 @@ class Door(QGraphicsItem):
         self.doorItem[2] = val
 
     def paint(self, painter, option, widget):
-
         painter.setRenderHint(QPainter.Antialiasing, True)
 
         if self.exists:
@@ -1965,7 +1957,6 @@ class Door(QGraphicsItem):
         return QRectF(0.0, 0.0, 64.0, 52.0)
 
     def mouseDoubleClickEvent(self, event):
-
         self.exists = not self.exists
 
         event.accept()
@@ -1985,7 +1976,6 @@ class Door(QGraphicsItem):
 
 
 class Room(QListWidgetItem):
-
     # contains concrete room information necessary for examining a room's game qualities
     # such as type, variant, subtype, and shape information
     class Info:
@@ -2547,12 +2537,10 @@ class Room(QListWidgetItem):
 
 class RoomDelegate(QStyledItemDelegate):
     def __init__(self):
-
         self.pixmap = QPixmap("resources/UI/CurrentRoom.png")
         QStyledItemDelegate.__init__(self)
 
     def paint(self, painter, option, index):
-
         painter.fillRect(
             option.rect.right() - 19, option.rect.top(), 17, 16, QBrush(Qt.white)
         )
@@ -2566,11 +2554,9 @@ class RoomDelegate(QStyledItemDelegate):
 
 class FilterMenu(QMenu):
     def __init__(self):
-
         QMenu.__init__(self)
 
     def paintEvent(self, event):
-
         QMenu.paintEvent(self, event)
 
         painter = QPainter(self)
@@ -3201,7 +3187,6 @@ class RoomSelector(QWidget):
             self.changeFilter()
 
     def changeSize(self, shapeIdx):
-
         # Set the Size - gotta lotta shit to do here
         s = shapeIdx + 1
 
@@ -3334,7 +3319,6 @@ class RoomSelector(QWidget):
         msgBox.addButton("Delete", QMessageBox.AcceptRole)
         msgBox.addButton("Cancel", QMessageBox.RejectRole)
         if msgBox.exec_() == QMessageBox.AcceptRole:
-
             self.list.clearSelection()
             for item in rooms:
                 self.list.takeItem(self.list.row(item))
@@ -3430,7 +3414,6 @@ class RoomSelector(QWidget):
             self.duplicateRoomButton.setText("Mirror X")
 
     def exportRoom(self):
-
         dialogDir = mainWindow.getRecentFolder()
 
         target, match = QFileDialog.getSaveFileName(
@@ -3679,7 +3662,6 @@ class EntityGroupModel(QAbstractListModel):
 
         elif role == Qt.BackgroundRole:
             if isinstance(item, EntityGroupItem):
-
                 colour = 165
 
                 if colour > 255:
@@ -3740,7 +3722,6 @@ class EntityPalette(QWidget):
         self.setLayout(self.layout)
 
     def populateTabs(self):
-
         for tab in xmlLookups.entities.tabs:
             model = EntityGroupModel(tab)
             if model.group.entitycount != 0:
@@ -3833,7 +3814,6 @@ class EntityList(QListView):
         self.filter = ""
 
     def mouseMoveEvent(self, event):
-
         index = self.indexAt(event.pos()).row()
 
         if index != -1:
@@ -5265,7 +5245,6 @@ class MainWindow(QMainWindow):
 
     # @pyqtSlot(Room, Room)
     def handleSelectedRoomChanged(self, current, prev):
-
         if not current:
             return
 
@@ -5561,7 +5540,6 @@ class MainWindow(QMainWindow):
                 )
 
             for stackedEnts, ex, ey in room.spawns():
-
                 if not room.info.isInBounds(ex, ey):
                     printf(
                         f"Found entity with out of bounds spawn loc in room {room.getPrefix()}: {ex-1}, {ey-1}"
@@ -5929,7 +5907,6 @@ class MainWindow(QMainWindow):
 
     def writeTestData(self, folder, testType, floorInfo, testRooms):
         with open(os.path.join(folder, "roomTest.lua"), "w") as testData:
-
             quot = '\\"'
             bs = "\\"
             strFix = lambda x: f'''"{x.replace(bs, bs + bs).replace('"', quot)}"'''
@@ -6246,7 +6223,6 @@ class MainWindow(QMainWindow):
         return ""
 
     def findResourcePath(self):
-
         resourcesPath = ""
 
         if QFile.exists(settings.value("ResourceFolder")):
@@ -6378,11 +6354,11 @@ class MainWindow(QMainWindow):
         # Trigger test hooks
         testHooks = settings.value("HooksTest")
         if testHooks:
-            tp = str(testPath)
+            tp = os.path.abspath(testPath)
             for hook in testHooks:
                 wd, script = os.path.split(hook)
                 try:
-                    subprocess.run([hook, tp, "--test"], cwd=wd, timeout=30)
+                    subprocess.run([hook, tp, "--test"], cwd=wd, timeout=60)
                 except Exception as e:
                     printf("Test hook failed! Reason:", e)
 
@@ -6481,7 +6457,6 @@ class MainWindow(QMainWindow):
 
     # @pyqtSlot()
     def selectAll(self):
-
         path = QPainterPath()
         path.addRect(self.scene.sceneRect())
         self.scene.setSelectionArea(path)
@@ -6571,7 +6546,6 @@ class MainWindow(QMainWindow):
 
     # @pyqtSlot()
     def updateDockVisibility(self):
-
         if self.EntityPaletteDock.isVisible():
             self.wb.setText("Hide Entity Painter")
         else:
@@ -6620,7 +6594,6 @@ def applyDefaultSettings(settings, defaults):
 
 
 if __name__ == "__main__":
-
     import sys
 
     min_version = [3, 7]
