@@ -110,7 +110,7 @@ def findInstallPath():
                     )
                     if os.path.isfile(libconfig):
                         libLines = list(open(libconfig, "r"))
-                        matcher = re.compile(r'"\d+"\s*"(.*?)"')
+                        matcher = re.compile(r'"path"\s*"(.*?)"')
                         installDirs = map(
                             lambda res: os.path.normpath(res.group(1)),
                             filter(
@@ -719,6 +719,17 @@ class RoomEditorWidget(QGraphicsView):
         else:
             self.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
 
+    def calculateTotalHP(self, baseHP, stageHP, stageNum):
+        totalHP = round(
+            baseHP
+            + ((min(4, stageNum) + (0.8 * max(0, min(stageNum - 5, 5)))) * stageHP),
+            2,
+        )
+        if totalHP.is_integer():
+            return int(totalHP)
+        else:
+            return totalHP
+
     def paintEvent(self, event):
         # Purely handles the status overlay text
         QGraphicsView.paintEvent(self, event)
@@ -807,6 +818,47 @@ class RoomEditorWidget(QGraphicsView):
                 int(Qt.AlignRight | Qt.AlignBottom),
                 f"Base HP : {e.entity.config.baseHP}",
             )
+            textY += 16
+
+            if e.entity.config.stageHP is not None and e.entity.config.stageHP != "0":
+                painter.drawText(
+                    r.right() - 34 - 200,
+                    textY,
+                    200,
+                    12,
+                    int(Qt.AlignRight | Qt.AlignBottom),
+                    f"Stage HP : {e.entity.config.stageHP}",
+                )
+                textY += 16
+
+                stageHPNum = mainWindow.floorInfo.get(
+                    "StageHPNum"
+                ) or mainWindow.floorInfo.get("Stage")
+                totalHP = self.calculateTotalHP(
+                    float(e.entity.config.baseHP),
+                    float(e.entity.config.stageHP),
+                    float(stageHPNum),
+                )
+
+                painter.drawText(
+                    r.right() - 34 - 200,
+                    textY,
+                    200,
+                    12,
+                    int(Qt.AlignRight | Qt.AlignBottom),
+                    f"Total HP : {totalHP}",
+                )
+                textY += 16
+
+            if e.entity.config.armor is not None and e.entity.config.armor != "0":
+                painter.drawText(
+                    r.right() - 34 - 200,
+                    textY,
+                    200,
+                    12,
+                    int(Qt.AlignRight | Qt.AlignBottom),
+                    f"Armor : {e.entity.config.armor}",
+                )
 
         elif len(selectedEntities) > 1:
             e = selectedEntities[0]
@@ -1378,7 +1430,18 @@ class Entity(QGraphicsItem):
         if gfxData is None:
             return None
 
-        entID = f"{self.entity.Type}.{self.entity.Variant}.{self.entity.Subtype}"
+        variant = self.entity.Variant
+        subtype = self.entity.Subtype
+
+        if self.entity.config.hasBitfields:
+            if self.entity.config.hasBitfieldKey("Subtype"):
+                subtype = 0
+
+            if self.entity.config.hasBitfieldKey("Variant"):
+                variant = 0
+
+        entID = f"{self.entity.Type}.{variant}.{subtype}"
+
         return gfxData["Entities"].get(entID)
 
     def getCurrentImg(self):
@@ -5469,6 +5532,12 @@ class MainWindow(QMainWindow):
 
         self.path = path
 
+        global xmlLookups
+        self.floorInfo = (
+            xmlLookups.stages.lookup(path=self.path)
+            or xmlLookups.stages.lookup(name="Basement")
+        )[-1]
+
         roomFile = None
         try:
             roomFile = self.open(addToRecent=addToRecent and isXml)
@@ -5843,8 +5912,8 @@ class MainWindow(QMainWindow):
         settings.setValue("GridEnabled", "0")
 
         ScreenshotImage = QImage(
-            self.scene.sceneRect().width(),
-            self.scene.sceneRect().height(),
+            int(self.scene.sceneRect().width()),
+            int(self.scene.sceneRect().height()),
             QImage.Format_ARGB32,
         )
         ScreenshotImage.fill(Qt.transparent)
@@ -6307,13 +6376,8 @@ class MainWindow(QMainWindow):
         settings = QSettings("settings.ini", QSettings.IniFormat)
         version = getGameVersion()
 
-        # Floor type
-        # TODO cache this when loading a file
         global xmlLookups
-        floorInfo = (
-            xmlLookups.stages.lookup(path=mainWindow.path)
-            or xmlLookups.stages.lookup(name="Basement")
-        )[-1]
+        floorInfo = mainWindow.floorInfo
 
         forceCleanModFolder = settings.value("HelperModDev") == "1"
         modPath, roomPath = self.makeTestMod(forceCleanModFolder)
