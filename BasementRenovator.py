@@ -3444,8 +3444,12 @@ class RoomSelector(QWidget):
             )
             r.xmlProps = deepcopy(room.xmlProps)
 
-            # Mirror the room
-            if self.mirror:
+            # Ball & Chains will not be flipped correctly; Basement Renovator needs to
+            # be updated with the proper logic to decode the
+            # sub-type and flip it.
+            if self.mirror and not self.roomHasEntity(
+                room, EntityType["BALL_AND_CHAIN"]
+            ):
                 if self.mirrorY:
                     r.mirrorY()
                 else:
@@ -3455,6 +3459,15 @@ class RoomSelector(QWidget):
             self.list.setCurrentItem(r, QItemSelectionModel.Select)
 
         mainWindow.dirt()
+
+    def roomHasEntity(self, room, entityTypeToMatch: int) -> bool:
+        for spawn in room._gridSpawns:
+            for entity in spawn:
+                entityType = entity[0]
+                if entityType == entityTypeToMatch:
+                    return True
+
+        return False
 
     def mirrorButtonOn(self):
         self.mirror = True
